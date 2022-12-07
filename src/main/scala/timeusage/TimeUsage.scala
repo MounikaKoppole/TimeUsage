@@ -29,7 +29,7 @@ object TimeUsage {
   }
 
   def timeUsageByLifePeriod(): Unit = {
-    val (columns, initDf) = read("/timeusage/atussum.csv")
+    val (columns, initDf) = read("timeusage/atussum.csv")
     val (primaryNeedsColumns, workColumns, otherColumns) = classifiedColumns(
       columns
     )
@@ -37,6 +37,29 @@ object TimeUsage {
     val finalDf = timeUsageGrouped(summaryDf)
     finalDf.show()
   }
+
+  /** Models a row of the summarized data set
+  * @param working
+  *   Working status (either "working" or "not working")
+  * @param sex
+  *   Sex (either "male" or "female")
+  * @param age
+  *   Age (either "young", "active" or "elder")
+  * @param primaryNeeds
+  *   Number of daily hours spent on primary needs
+  * @param work
+  *   Number of daily hours spent on work
+  * @param other
+  *   Number of daily hours spent on other activities
+  */
+  case class TimeUsageRow(
+    working: String,
+    sex: String,
+    age: String,
+    primaryNeeds: Double,
+    work: Double,
+    other: Double
+  )
 
   /** @return
     *   The schema of the DataFrame, assuming that the first given column has
@@ -137,13 +160,14 @@ object TimeUsage {
     *      "t13", "t14", "t15", "t16" and "t18" (those which are not part of the
     *      previous groups only).
     */
-  def classifiedColumns(columnNames: List[String]): Unit = {
+  def classifiedColumns(columnNames: List[String]): (List[Column], List[Column], List[Column]) = {
     columnNames.foldLeft((List.empty[Column], List.empty[Column], List.empty[Column])) {
       case ((primary, w, l), Primary(c)) => (col(c) :: primary, w, l)
       case ((p, working, l), Working(c)) => (p, col(c) :: working, l)
       case ((p, w, leisure), Leisure(c)) => (p, w, col(c) :: leisure)
       case skip                          => skip._1
     }
+  }  
 
   /** @return
     *   a projection of the initial DataFrame such that all columns containing
@@ -327,28 +351,4 @@ object TimeUsage {
       )
       .orderBy("working", "sex", "age")
   }
-}
-
-/** Models a row of the summarized data set
-  * @param working
-  *   Working status (either "working" or "not working")
-  * @param sex
-  *   Sex (either "male" or "female")
-  * @param age
-  *   Age (either "young", "active" or "elder")
-  * @param primaryNeeds
-  *   Number of daily hours spent on primary needs
-  * @param work
-  *   Number of daily hours spent on work
-  * @param other
-  *   Number of daily hours spent on other activities
-  */
-case class TimeUsageRow(
-    working: String,
-    sex: String,
-    age: String,
-    primaryNeeds: Double,
-    work: Double,
-    other: Double
-)
 }
